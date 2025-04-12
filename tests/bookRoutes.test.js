@@ -96,3 +96,58 @@ describe('GET /api/books/categories', () => {
     expect(res.body).toEqual([]);
   });
 });
+
+describe('POST /api/books', () => {
+  beforeEach(async () => {
+    await Book.deleteMany();
+  });
+
+  it('should create a new book with valid data', async () => {
+    const newBook = {
+      title: 'New Book',
+      authors: 'New Author',
+      isbn: '3333333333',
+      category: 'Science',
+      description: 'A new test book',
+      thumbnail: 'http://example.com/thumb3.jpg',
+      publishedDate: new Date('2023-01-01'),
+      publisher: 'New Publisher',
+      availableCopies: 10,
+    };
+
+    const res = await request(app).post('/api/books').send(newBook);
+    expect(res.statusCode).toBe(201);
+    expect(res.body).toHaveProperty('_id');
+    expect(res.body.title).toBe(newBook.title);
+  });
+
+  it('should return 400 if required fields are missing', async () => {
+    const incompleteBook = {
+      authors: 'Author Missing Title',
+    };
+
+    const res = await request(app).post('/api/books').send(incompleteBook);
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toHaveProperty('error');
+  });
+
+  it('should return 400 if ISBN is not unique', async () => {
+    const book = {
+      title: 'Duplicate ISBN Book',
+      authors: 'Author',
+      isbn: '4444444444',
+      category: 'History',
+      description: 'A duplicate ISBN test book',
+      thumbnail: 'http://example.com/thumb4.jpg',
+      publishedDate: new Date('2022-01-01'),
+      publisher: 'Publisher',
+      availableCopies: 5,
+    };
+
+    await Book.create(book);
+
+    const res = await request(app).post('/api/books').send(book);
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toHaveProperty('error');
+  });
+});
