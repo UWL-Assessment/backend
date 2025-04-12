@@ -65,3 +65,40 @@ exports.createBook = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Update an existing book
+exports.updateBook = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    // Find the book by ID and update it
+    const updatedBook = await Book.findByIdAndUpdate(id, updates, { new: true });
+
+    if (!updatedBook) {
+      return res.status(404).json({ error: 'Book not found' });
+    }
+
+    res.status(200).json(updatedBook);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Delete an existing book
+exports.deleteBook = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find the book by ID and delete it
+    const deletedBook = await Book.findByIdAndDelete(id);
+
+    if (!deletedBook) {
+      return res.status(404).json({ error: 'Book not found' });
+    }
+
+    res.status(200).json({ message: 'Book deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
