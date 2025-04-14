@@ -1,5 +1,5 @@
 const express = require('express');
-const bookRoutes = require('./routes/bookRoutes.js');
+const bookRoutes = require('./routes/bookListRoutes.js');
 
 const app = express();
 app.use(express.json());
