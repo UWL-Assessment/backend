@@ -225,3 +225,73 @@ describe('DELETE /api/books/:id', () => {
   });
 });
 
+describe('POST /api/books/:id/reserve', () => {
+  let book;
+
+  beforeEach(async () => {
+    await Book.deleteMany();
+    book = await Book.create({
+      title: 'Reservable Book',
+      authors: 'Author',
+      isbn: '7777777777',
+      category: 'Fiction',
+      description: 'A book to reserve',
+      thumbnail: 'http://example.com/thumb7.jpg',
+      publishedDate: new Date('2022-01-01'),
+      publisher: 'Publisher',
+      availableCopies: 2,
+    });
+  });
+
+  it('should reserve a book for a user with a valid ObjectID', async () => {
+    const validUserId = new mongoose.Types.ObjectId();
+    const res = await request(app)
+      .post(`/api/books/${book._id}/reserve`)
+      .send({ userId: validUserId });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.availableCopies).toBe(1);
+    expect(res.body.reservedBy).toContain(validUserId.toString());
+  });
+
+  it('should return 400 if user ID is not a valid ObjectID', async () => {
+    const invalidUserId = 'invalidUserId';
+    const res = await request(app)
+      .post(`/api/books/${book._id}/reserve`)
+      .send({ userId: invalidUserId });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toHaveProperty('error', 'Invalid User ID format');
+  });
+
+  it('should return 400 if no user ID is provided', async () => {
+    const res = await request(app).post(`/api/books/${book._id}/reserve`).send({});
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toHaveProperty('error', 'User ID is required to reserve a book');
+  });
+
+  it('should return 404 if book does not exist', async () => {
+    const nonExistentId = new mongoose.Types.ObjectId();
+    const validUserId = new mongoose.Types.ObjectId();
+    const res = await request(app)
+      .post(`/api/books/${nonExistentId}/reserve`)
+      .send({ userId: validUserId });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body).toHaveProperty('error', 'Book not found');
+  });
+
+  it('should return 400 if no copies are available', async () => {
+    book.availableCopies = 0;
+    await book.save();
+
+    const validUserId = new mongoose.Types.ObjectId();
+    const res = await request(app)
+      .post(`/api/books/${book._id}/reserve`)
+      .send({ userId: validUserId });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toHaveProperty('error', 'No available copies to reserve');
+  });
+});
+
