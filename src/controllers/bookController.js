@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Book = require("../models/bookModel.js");
 
 // Fetch all books with optional category filtering
@@ -98,6 +99,42 @@ exports.deleteBook = async (req, res) => {
     }
 
     res.status(200).json({ message: 'Book deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Reserve a book
+exports.reserveBook = async (req, res) => {
+  try {
+    const { id } = req.params; // Book ID
+    const userId = req.body.userId; // User ID from request body
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required to reserve a book' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ error: 'Invalid User ID format' });
+    }
+
+    const book = await Book.findById(id);
+
+    if (!book) {
+      return res.status(404).json({ error: 'Book not found' });
+    }
+
+    if (book.availableCopies <= 0) {
+      return res.status(400).json({ error: 'No available copies to reserve' });
+    }
+
+    // Add user to reservedBy and decrement availableCopies
+    book.reservedBy.push(userId);
+    book.availableCopies -= 1;
+
+    const updatedBook = await book.save();
+
+    res.status(200).json(updatedBook);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
