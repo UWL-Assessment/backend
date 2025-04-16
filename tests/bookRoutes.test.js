@@ -2,6 +2,7 @@ const request = require('supertest');
 const mongoose = require('mongoose');
 const app = require('../src/app.js');
 const Book = require('../src/models/bookModel.js');
+const User = require('../src/models/userModel');
 require('dotenv').config();
 
 beforeAll(async () => {
@@ -11,7 +12,6 @@ beforeAll(async () => {
 afterAll(async () => {
   await mongoose.connection.close();
 });
-
 
 describe('GET /api/books', () => {
   beforeEach(async () => {
@@ -293,5 +293,99 @@ describe('POST /api/books/:id/reserve', () => {
     expect(res.statusCode).toBe(400);
     expect(res.body).toHaveProperty('error', 'No available copies to reserve');
   });
+});
+
+describe("Role-based access control for book routes", () => {
+  let adminToken, staffToken, studentToken;
+
+  beforeAll(async () => {
+    await mongoose.connect(process.env.MONGO_TEST_URI);
+
+    // Create users with different roles
+    const admin = await User.create({
+      username: "admin",
+      email: "admin@example.com",
+      password: "password123",
+      role: "admin",
+    });
+
+    const staff = await User.create({
+      username: "staff",
+      email: "staff@example.com",
+      password: "password123",
+      role: "staff",
+    });
+
+    const student = await User.create({
+      username: "student",
+      email: "student@example.com",
+      password: "password123",
+      role: "student",
+    });
+
+    // Generate tokens for each user
+    adminToken = `Bearer ${admin._id}`;
+    staffToken = `Bearer ${staff._id}`;
+    studentToken = `Bearer ${student._id}`;
+  });
+
+  afterAll(async () => {
+    await User.deleteMany();
+    await Book.deleteMany();
+    await mongoose.connection.close();
+  });
+
+  it("should allow admin to create a book", async () => {
+    const newBook = {
+      title: "Admin Book",
+      authors: "Admin Author",
+      isbn: "1234567890",
+      category: "Fiction",
+      availableCopies: 5,
+    };
+
+    const res = await request(app)
+      .post("/api/books")
+      .set("Authorization", adminToken)
+      .send(newBook);
+
+    expect(res.statusCode).toBe(201);
+  });
+
+  it("should allow staff to create a book", async () => {
+    const newBook = {
+      title: "Staff Book",
+      authors: "Staff Author",
+      isbn: "0987654321",
+      category: "Non-fiction",
+      availableCopies: 3,
+    };
+
+    const res = await request(app)
+      .post("/api/books")
+      .set("Authorization", staffToken)
+      .send(newBook);
+
+    expect(res.statusCode).toBe(201);
+  });
+
+  it("should not allow student to create a book", async () => {
+    const newBook = {
+      title: "Student Book",
+      authors: "Student Author",
+      isbn: "1122334455",
+      category: "Science",
+      availableCopies: 2,
+    };
+
+    const res = await request(app)
+      .post("/api/books")
+      .set("Authorization", studentToken)
+      .send(newBook);
+
+    expect(res.statusCode).toBe(403);
+  });
+
+  // Similar tests can be added for update and delete routes
 });
 
