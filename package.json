@@ -13,7 +13,11 @@
   "license": "MIT",
   "description": "",
   "dependencies": {
+<<<<<<< HEAD
     "bcryptjs": "^3.0.2",
+=======
+    "cors": "^2.8.5",
+>>>>>>> 8360b1b3e5f21453e880d35b7028f5d97d1a6776
     "express": "^5.1.0",
     "express-async-handler": "^1.2.0",
     "mongoose": "^8.13.2"
