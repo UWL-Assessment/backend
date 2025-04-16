@@ -46,6 +46,41 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Login a user
+// @route   POST /api/auth/login
+// @access  Public
+const loginUser = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+
+  // Validate input
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email and password are required' });
+  }
+
+  // Check if user exists
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(401).json({ message: 'Invalid email or password' });
+  }
+
+  // Check if password matches
+  const isMatch = await user.matchPassword(password);
+  if (!isMatch) {
+    return res.status(401).json({ message: 'Invalid email or password' });
+  }
+
+  res.status(200).json({
+    message: 'Login successful',
+    user: {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+    },
+  });
+});
+
 module.exports = {
   registerUser,
+  loginUser,
 };

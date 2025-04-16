@@ -25,7 +25,6 @@ describe('Auth Routes - Sign Up', () => {
     const response = await request(app)
       .post('/api/auth/register')
       .send(newUser);
-
     expect(response.status).toBe(201);
     expect(response.body).toHaveProperty('message', 'User registered successfully');
     expect(response.body).toHaveProperty('user');
@@ -62,5 +61,77 @@ describe('Auth Routes - Sign Up', () => {
 
     expect(response.status).toBe(400);
     expect(response.body).toHaveProperty('message', 'All fields are required');
+  });
+});
+
+describe('Auth Routes - Login', () => {
+  beforeAll(async () => {
+    await mongoose.connect(process.env.MONGO_TEST_URI);
+  });
+
+  afterAll(async () => {
+    await mongoose.connection.close();
+  });
+
+  beforeEach(async () => {
+    await User.deleteMany();
+    await User.create({
+      username: 'testuser',
+      email: 'testuser@example.com',
+      password: 'password123',
+    });
+  });
+
+  it('should login successfully with valid credentials', async () => {
+    const loginData = {
+      email: 'testuser@example.com',
+      password: 'password123',
+    };
+
+    const response = await request(app)
+      .post('/api/auth/login')
+      .send(loginData);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('message', 'Login successful');
+    expect(response.body).toHaveProperty('user');
+    expect(response.body.user).toHaveProperty('email', loginData.email);
+  });
+
+  it('should return an error for invalid email', async () => {
+    const loginData = {
+      email: 'invalid@example.com',
+      password: 'password123',
+    };
+
+    const response = await request(app)
+      .post('/api/auth/login')
+      .send(loginData);
+
+    expect(response.status).toBe(401);
+    expect(response.body).toHaveProperty('message', 'Invalid email or password');
+  });
+
+  it('should return an error for invalid password', async () => {
+    const loginData = {
+      email: 'testuser@example.com',
+      password: 'wrongpassword',
+    };
+
+    const response = await request(app)
+      .post('/api/auth/login')
+      .send(loginData);
+
+    expect(response.status).toBe(401);
+    expect(response.body).toHaveProperty('message', 'Invalid email or password');
+  });
+
+  it('should return an error if email or password is missing', async () => {
+    const response = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'testuser@example.com' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toHaveProperty('message', 'Email and password are required');
   });
 });
